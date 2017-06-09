@@ -1,26 +1,14 @@
 #ifndef PID_H
 #define PID_H
 
+#include <vector>
+
 class PID {
 public:
   /*
-  * Errors
-  */
-  double p_error;
-  double i_error;
-  double d_error;
-
-  /*
-  * Coefficients
-  */ 
-  double Kp;
-  double Ki;
-  double Kd;
-
-  /*
   * Constructor
   */
-  PID();
+  PID() : coef(3) {}
 
   /*
   * Destructor.
@@ -30,17 +18,39 @@ public:
   /*
   * Initialize PID.
   */
-  void Init(double Kp, double Ki, double Kd);
+  void Init(double kp, double ki, double kd);
+
+  double Run(double cte);
+
+  double AvgError();
+
+  void ResetTwiddle();
+
+  int StepCount();
+
+  void Twiddle();
+
+private:
+  double total_cte;
+  double prev_cte;
+  double previous_time;
+  
+  int totalSteps;
+  bool firstTwiddle;
+  bool twiddleUp;
+  int twiddlePos;
+  double bestErr;
 
   /*
-  * Update the PID error variables given cross track error.
+  * Errors
   */
-  void UpdateError(double cte);
+  std::vector<double> dp = {1.0, 1.0, 1.0};
 
   /*
-  * Calculate the total PID error.
-  */
-  double TotalError();
+  * Coefficients
+  */ 
+  std::vector<double> coef;
+
 };
 
 #endif /* PID_H */

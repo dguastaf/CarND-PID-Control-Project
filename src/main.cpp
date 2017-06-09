@@ -4,8 +4,12 @@
 #include "PID.h"
 #include <math.h>
 
+#define PARAM_TUNE false
+#define TWIDDLE_STEPS 1000
+
 // for convenience
 using json = nlohmann::json;
+using namespace std;
 
 // For converting back and forth between radians and degrees.
 constexpr double pi() { return M_PI; }
@@ -33,7 +37,7 @@ int main()
   uWS::Hub h;
 
   PID pid;
-  // TODO: Initialize the pid variable.
+  pid.Init(.08, 0.001, .02);
 
   h.onMessage([&pid](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
@@ -50,14 +54,31 @@ int main()
           double cte = std::stod(j[1]["cte"].get<std::string>());
           double speed = std::stod(j[1]["speed"].get<std::string>());
           double angle = std::stod(j[1]["steering_angle"].get<std::string>());
-          double steer_value;
+          double steer_value = 0;
           /*
           * TODO: Calcuate steering value here, remember the steering value is
           * [-1, 1].
           * NOTE: Feel free to play around with the throttle and speed. Maybe use
           * another PID controller to control the speed!
           */
+
+          cout << "\nStep " << pid.StepCount() << endl;
+          steer_value = pid.Run(cte);
           
+          if (steer_value < -1) {
+            steer_value = -1;
+          } else if (steer_value > 1) {
+            steer_value = 1;
+          }
+
+          if (PARAM_TUNE && pid.StepCount() == TWIDDLE_STEPS) {
+            pid.Twiddle();
+            pid.ResetTwiddle();
+            std::string reset_msg = "42[\"reset\",{}]";
+            ws.send(reset_msg.data(), reset_msg.length(), uWS::OpCode::TEXT);
+            return;
+          }
+
           // DEBUG
           std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
 
